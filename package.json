@@ -2,9 +2,9 @@
   "name": "portof",
   "version": "0.0.0",
   "description": "Backend of porti",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node dist/index.js",
     "dev": "nodemon",
     "build": "tsc"
   },
