@@ -32,9 +32,9 @@ mongoose
   })
 
 // Endpoints
-router.post('/api/message/send', sendMessage)
-router.get('/api/projects/get', getProjects)
-router.get('/api/skills/get', getSkills)
+router.post('/message/send', sendMessage)
+router.get('/projects/get', getProjects)
+router.get('/skills/get', getSkills)
 
 // Router
 app.use(router.routes()).use(router.allowedMethods())
