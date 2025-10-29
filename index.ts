@@ -19,6 +19,20 @@ const router = new Router()
 // Middleware
 app.use(bodyParser())
 
+const origin = process.env.FRONT_END as string
+
+app.use(async (ctx, next) => {
+  const referer = ctx.get('Referer')
+
+  if ((!referer || !referer.startsWith(origin)) && process.env.NODE_ENV == 'production') {
+    ctx.status = 403
+    ctx.body = 'Forbidden: Invalid origin or referer'
+    return
+  }
+
+  await next()
+})
+
 // DB connect
 mongoose
   .connect(MONGO_URI, {
