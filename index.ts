@@ -1,7 +1,10 @@
 import mongoose from 'mongoose'
 import Koa from 'koa'
+import cors from '@koa/cors'
 import Router from 'koa-router'
 import bodyParser from 'koa-bodyparser'
+import ratelimit from 'koa-ratelimit'
+import Redis from 'ioredis'
 import dotenv from 'dotenv'
 
 import { sendMessage } from './routes/message'
@@ -15,23 +18,34 @@ const MONGO_URI = process.env.MONGO_URI as string
 
 const app = new Koa()
 const router = new Router()
+const redis = new Redis({
+  host: process.env.REDIS_HOST,
+  port: Number(process.env.REDIS_PORT),
+  password: process.env.REDIS_PASSWORD || undefined,
+})
 
 // Middleware
 app.use(bodyParser())
 
-const origin = process.env.FRONT_END as string
+// CORS
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN,
+    allowMethods: ['GET', 'POST'],
+  })
+)
 
-app.use(async (ctx, next) => {
-  const referer = ctx.get('Referer')
-
-  if ((!referer || !referer.startsWith(origin)) && process.env.NODE_ENV == 'production') {
-    ctx.status = 403
-    ctx.body = 'Forbidden: Invalid origin or referer'
-    return
-  }
-
-  await next()
-})
+// Rate Limiter
+app.use(
+  ratelimit({
+    driver: 'redis',
+    db: redis,
+    duration: 60000,
+    errorMessage: 'Too many requests, please try again later.',
+    id: (ctx) => ctx.ip,
+    max: 60,
+  })
+)
 
 // DB connect
 mongoose
@@ -46,7 +60,17 @@ mongoose
   })
 
 // Endpoints
-router.post('/message/send', sendMessage)
+router.post(
+  '/message/send',
+  ratelimit({
+    driver: 'redis',
+    db: redis,
+    duration: 60000,
+    id: (ctx) => ctx.ip,
+    max: 5,
+  }),
+  sendMessage
+)
 router.get('/projects/get', getProjects)
 router.get('/skills/get', getSkills)
 
